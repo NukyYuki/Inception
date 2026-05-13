@@ -3,7 +3,7 @@
 #start mariadb server and create database
 set -e
 
-if *[ ! -d "/var/lib/mysql/mysql"]; then
+if [ ! -d "/var/lib/mysql/mysql" ]; then
     echo "Initializing database..."
     mysql_install_db --user=mysql --datadir=/var/lib/mysql --skip-test-db
 fi
@@ -27,7 +27,7 @@ for i in {30..0}; do
     sleep 1
 done
 
-if ! -d "/var/lib/mysql/${MYSQL_DATABASE}"]; then
+if ! [ -d "/var/lib/mysql/${MYSQL_DATABASE}" ]; then
     echo "Creating database and users"
 
     mysql -u root << EOF

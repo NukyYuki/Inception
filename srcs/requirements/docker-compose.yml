@@ -1,0 +1,18 @@
+services:
+
+# MariaDB
+mariadb:
+    build:
+        context: ./requirements/mariadb
+    container_name: mariadb
+    networks:
+      - inception
+    expose:
+      - "${MySQL_PORT}"
+    env_file:
+      - .env
+    volumes:
+      - mariadb_volume:/var/lib/mysql
+    restart: always
+
+#

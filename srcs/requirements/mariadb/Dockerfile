@@ -7,7 +7,7 @@ RUN	apt update && \
 
 RUN mkdir -p /var/run/mysqld && chown -R mysql:mysql /var/run/mysqld
 
-COPY  conf/default.cnf /etc/mysql/mariadb.conf.d/
+COPY  conf/default.conf /etc/mysql/mariadb.conf.d/
 COPY tools/init-mariadb.sh /usr/local/bin/init-mariadb.sh
 
 RUN chmod +x /usr/local/bin/init-mariadb.sh
