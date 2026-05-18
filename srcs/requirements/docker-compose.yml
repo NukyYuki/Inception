@@ -16,3 +16,51 @@ mariadb:
     restart: always
 
 #
+wordpress:
+    build:
+        context: ./requirements/wordpress
+    container_name: wordpress
+    depends_on:
+      - mariadb
+    networks:
+      - inception
+    env_file:
+      - .env
+    volumes:
+      - wordpress_volume:/var/www/html
+    restart: always
+
+nginx:
+    build:
+        context: ./requirements/nginx
+    container_name: nginx
+    depends_on:
+      - mariadb
+    ports:
+      - "443:443"
+    networks:
+      - inception
+    env_file:
+      - .env
+    volumes:
+      - wordpress_volume:/var/www/html
+    restart: always
+
+networks:
+    inception:
+      driver: bridge
+
+volumes:
+    mariadb_volume:
+      driver: local
+      driver_opts:
+        type: none
+        device: /home/mipinhei/data/mariadb
+        o: bind
+    
+    wordpress_volume:
+      driver: local
+      driver_opts:
+        type: none
+        device: /home/mipinhei/data/wordpress
+        o: bind
