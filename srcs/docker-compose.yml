@@ -1,4 +1,14 @@
+# =========================
+# INCEPTION - Docker Compose Configuration
+# =========================
+# This file orchestrates the NGINX, WordPress, and MariaDB containers
+# For 42 School environment: DOMAIN_NAME should be your 42 login (mipinhei.42.fr)
+
 services:
+
+  # =========================
+  # MARIADB - Database Service
+  # =========================
   mariadb:
     build:
       context: ./requirements/mariadb
@@ -13,6 +23,9 @@ services:
       - mariadb_volume:/var/lib/mysql
     restart: always
 
+  # =========================
+  # WORDPRESS - PHP-FPM Service
+  # =========================
   wordpress:
     build:
       context: ./requirements/wordpress
@@ -27,6 +40,10 @@ services:
       - wordpress_volume:/var/www/html
     restart: always
 
+  # =========================
+  # NGINX - Web Server (TLS)
+  # =========================
+  # Only NGINX exposes ports to the host
   nginx:
     build:
       context: ./requirements/nginx
@@ -43,10 +60,19 @@ services:
       - wordpress_volume:/var/www/html
     restart: always
 
+# =========================
+# NETWORK
+# =========================
+# Bridge network for inter-container communication
 networks:
   inception:
     driver: bridge
 
+# =========================
+# VOLUMES
+# =========================
+# Named volumes with bind mounts for persistence
+# Uses ${SUDO_USER} variable from .env which maps to your login
 volumes:
   mariadb_volume:
     driver: local

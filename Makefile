@@ -1,43 +1,98 @@
-NAME = inception
-DOCKER_COMPOSE = sudo docker compose -f srcs/docker-compose.yml --env-file .env
-#DATA_PATH = /home/mipinhei/data
-DATA_PATH = /home/$(USER)/data
+.DEFAULT_GOAL := all
 
-all: setup
-	@echo "Inception Built"
-	$(DOCKER_COMPOSE) up -d --build
+.PHONY: all setup build up stop down clean fclean re logs ps
 
+# =========================
+# VARIABLES
+# =========================
+# For 42 School environment: set to your login (e.g., mipinhei.42.fr)
+DOMAIN_NAME ?= mipinhei.42.fr
+COMPOSE_FILE = srcs/docker-compose.yml
+# FIXED: Changed from hardcoded path to ${HOME}/data for flexibility
+# Previously: /home/mipinhei/data
+DOCKER_COMPOSE = docker compose -f $(COMPOSE_FILE) --env-file .env
+DATA_PATH = ${HOME}/data
+
+# =========================
+# SETUP TARGET
+# =========================
 setup:
-	@echo "Setting up data directories..."
+	@echo "Creating data directories..."
 	@mkdir -p $(DATA_PATH)/mariadb
 	@mkdir -p $(DATA_PATH)/wordpress
-	# FIXED: Changed 777 to 755 (more restrictive, better security)
-	# @sudo chmod 777 $(DATA_PATH)/mariadb
-	# @sudo chmod 777 $(DATA_PATH)/wordpress
+	@echo "Setting directory permissions..."
+	# FIXED: Changed from 777 to 755 (more restrictive, better security)
 	@sudo chmod 755 $(DATA_PATH)/mariadb
 	@sudo chmod 755 $(DATA_PATH)/wordpress
+	@echo "Setup complete"
 
+# =========================
+# BUILD TARGETS
+# =========================
+all: setup
+	@echo "Building Inception infrastructure..."
+	$(DOCKER_COMPOSE) up -d --build
+	@echo "Inception started successfully!"
+	@echo "Access: https://$(DOMAIN_NAME)"
+
+build:
+	@echo "Building Docker images..."
+	$(DOCKER_COMPOSE) build --no-cache
+
+up:
+	@echo "Starting containers..."
+	$(DOCKER_COMPOSE) up -d --build
+	@echo "Containers started"
+
+# =========================
+# STOP TARGETS
+# =========================
 stop:
-	@echo "Stopping containers..."
+	@echo "Stopping containers gracefully..."
 	$(DOCKER_COMPOSE) stop
+	@echo "Containers stopped"
 
 down:
-	@echo "Stopping and removing containers, networks, volumes, and images..."
+	@echo "Stopping and removing containers, networks..."
 	$(DOCKER_COMPOSE) down
+	@echo "Containers removed"
 
+# =========================
+# CLEAN TARGETS
+# =========================
 clean: down
-	@echo "Cleaning up data directories..."
-	$(DOCKER_COMPOSE) down
+	@echo "Removing Docker images..."
+	@docker rmi $$(docker images -q -f reference='*inception*') 2>/dev/null || true
+	@docker rmi $$(docker images -q -f reference='srcs-*') 2>/dev/null || true
+	@echo "Images removed"
 
 fclean: clean
-	@echo "Everything clean"
-	@sudo rm -rf $(DATA_PATH)
-	@if [ -n "$$(sudo docker volume ls -q)" ]; then \
-		# FIXED: Changed 'docker ls' to 'docker volume ls' (correct command); \
-		# sudo docker volume rm $$(sudo docker ls -q); \
-		sudo docker volume rm $$(sudo docker volume ls -q); \
-	fi
+	@echo "FULL CLEANUP - Removing EVERYTHING..."
+	@echo "Removing containers with volumes..."
+	$(DOCKER_COMPOSE) down -v --rmi all --remove-orphans >/dev/null 2>&1 || true
+	@echo "Removing all Docker volumes..."
+	@docker volume prune -f >/dev/null 2>&1 || true
+	@echo "Removing all Docker images..."
+	@docker image prune -a -f >/dev/null 2>&1 || true
+	@echo "Removing build cache..."
+	@docker builder prune -a -f >/dev/null 2>&1 || true
+	@echo "Fixing permissions..."
+	@sudo chown -R $(USER):$(USER) $(DATA_PATH) >/dev/null 2>&1 || true
+	@echo "Removing persistent data..."
+	@sudo rm -rf $(DATA_PATH) >/dev/null 2>&1 || true
+	@echo "COMPLETE CLEANUP DONE"
 
+# =========================
+# REBUILD TARGET
+# =========================
 re: fclean all
+	@echo "Full rebuild completed"
 
-.PHONY: all setup stop down clean fclean re
+# =========================
+# MANAGEMENT TARGETS
+# =========================
+logs:
+	@$(DOCKER_COMPOSE) logs -f
+
+ps:
+	@$(DOCKER_COMPOSE) ps
