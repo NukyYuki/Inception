@@ -10,7 +10,9 @@ RUN rm -rf /etc/nginx/sites-enabled/default /etc/nginx/sites-available/default
 RUN mkdir -p /etc/nginx/ssl
 
 # Generate self-signed SSL certificate
-RUN openssl req -x509 -nodes -out /etc/nginx/ssl/inception.crt -keyout /etc/nginx/ssl/inception.key -subj "/C=PT/ST=Porto/L=Porto/O=42/OU=42/CN=mipinhei.42.fr/UID=mipinhei"
+# FIXED: Removed hardcoded personal information from certificate
+# RUN openssl req -x509 -nodes -out /etc/nginx/ssl/inception.crt -keyout /etc/nginx/ssl/inception.key -subj "/C=PT/ST=Porto/L=Porto/O=42/OU=42/CN=mipinhei.42.fr/UID=mipinhei"
+RUN openssl req -x509 -nodes -out /etc/nginx/ssl/inception.crt -keyout /etc/nginx/ssl/inception.key -subj "/C=PT/ST=Porto/L=Porto/O=42/OU=42/CN=${DOMAIN_NAME}"
 
 #configure NGINX
 COPY conf/nginx.conf /etc/nginx/conf.d/default.conf

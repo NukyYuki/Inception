@@ -1,6 +1,7 @@
 #!/bin/bash
 
-sed -i 's|listen = /run/php/php8.2-fpm.sock|listen = 9000' /etc/php/8.2/fpm/pool.d/wpress.conf
+
+sed -i 's|listen = /run/php/php8.2-fpm.sock|listen = 9000|' /etc/php/8.2/fpm/pool.d/wpress.conf
 
 echo "WordPress waiting for MariaDB to be ready..."
 until mariadb -h mariadb \
@@ -15,7 +16,9 @@ done
 echo "MariaDB is ready. Initializing WordPress setup..."
 
 # create config if it doesn't exist
-if [ ! -f "/var/www/html/wp-config.php"]; then
+# FIXED: Added space before closing bracket
+# if [ ! -f "/var/www/html/wp-config.php"];
+if [ ! -f "/var/www/html/wp-config.php" ]; then
     echo "Default wp-config.php not found, Creating one"
 
     echo "cleaning up"

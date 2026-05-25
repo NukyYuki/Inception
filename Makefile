@@ -1,5 +1,5 @@
 NAME = inception
-DOCKER_COMPOSE = sudo docker compose -f srcs/docker-compose.yml
+DOCKER_COMPOSE = sudo docker compose -f srcs/docker-compose.yml --env-file .env
 #DATA_PATH = /home/mipinhei/data
 DATA_PATH = /home/$(USER)/data
 
@@ -11,8 +11,11 @@ setup:
 	@echo "Setting up data directories..."
 	@mkdir -p $(DATA_PATH)/mariadb
 	@mkdir -p $(DATA_PATH)/wordpress
-	@sudo chmod 777 $(DATA_PATH)/mariadb
-	@sudo chmod 777 $(DATA_PATH)/wordpress
+	# FIXED: Changed 777 to 755 (more restrictive, better security)
+	# @sudo chmod 777 $(DATA_PATH)/mariadb
+	# @sudo chmod 777 $(DATA_PATH)/wordpress
+	@sudo chmod 755 $(DATA_PATH)/mariadb
+	@sudo chmod 755 $(DATA_PATH)/wordpress
 
 stop:
 	@echo "Stopping containers..."
@@ -30,7 +33,9 @@ fclean: clean
 	@echo "Everything clean"
 	@sudo rm -rf $(DATA_PATH)
 	@if [ -n "$$(sudo docker volume ls -q)" ]; then \
-		sudo docker volume rm $$(sudo docker ls -q); \
+		# FIXED: Changed 'docker ls' to 'docker volume ls' (correct command); \
+		# sudo docker volume rm $$(sudo docker ls -q); \
+		sudo docker volume rm $$(sudo docker volume ls -q); \
 	fi
 
 re: fclean all

@@ -10,7 +10,7 @@ fi
 
 echo "Starting MariaDB server Config"
 
-mysql_safe &
+mysqld_safe &
 MARIADB_PID=$!
 
 # Wait for the server to start
