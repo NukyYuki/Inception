@@ -10,7 +10,7 @@ DOMAIN_NAME ?= mipinhei.42.fr
 COMPOSE_FILE = srcs/docker-compose.yml
 # FIXED: Changed from hardcoded path to ${HOME}/data for flexibility
 # Previously: /home/mipinhei/data
-DOCKER_COMPOSE = docker compose -f $(COMPOSE_FILE) --env-file .env
+DOCKER_COMPOSE = docker compose -f $(COMPOSE_FILE) --env-file srcs/.env
 DATA_PATH = ${HOME}/data
 
 # =========================
