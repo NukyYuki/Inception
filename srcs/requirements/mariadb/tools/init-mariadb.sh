@@ -2,12 +2,6 @@
 # =========================
 # MARIADB INITIALIZATION SCRIPT
 # =========================
-# This script:
-# 1. Initializes the MySQL data directory if needed
-# 2. Starts MariaDB server temporarily
-# 3. Creates database and users
-# 4. Sets root password
-# 5. Restarts MariaDB server
 
 set -e
 
@@ -22,10 +16,10 @@ if [ ! -d "/var/lib/mysql/mysql" ]; then
 fi
 
 # =========================
-# START MARIADB TEMPORARILY
+# START MARIADB WITH SKIP-GRANT-TABLES (first time only)
 # =========================
-echo "[DEBUG] Starting MariaDB server (background mode)..."
-mysqld_safe &
+echo "[DEBUG] Starting MariaDB server with --skip-grant-tables..."
+mysqld --user=mysql --bind-address=0.0.0.0 --skip-grant-tables &
 MARIADB_PID=$!
 
 # Wait for MariaDB to be ready
@@ -44,43 +38,35 @@ for i in {30..0}; do
 done
 
 # =========================
-# CREATE DATABASE AND USERS
+# SETUP USERS AND PERMISSIONS
 # =========================
-if ! [ -d "/var/lib/mysql/${MYSQL_DATABASE}" ]; then
-	echo "[DEBUG] Creating database and users..."
+echo "[DEBUG] Setting up users and database..."
+echo "[DEBUG] DB: ${MYSQL_DATABASE}, User: ${MYSQL_USER}"
 
-	mysql -u root << EOF
-	-- Set password for root user
-	ALTER USER 'root'@'localhost' IDENTIFIED BY '${MYSQL_ROOT_PASSWORD}';
-
-	-- Create database for WordPress
-	CREATE DATABASE IF NOT EXISTS ${MYSQL_DATABASE};
-
-	-- Create WordPress user
-	CREATE USER IF NOT EXISTS '${MYSQL_USER}'@'%' IDENTIFIED BY '${MYSQL_PASSWORD}';
-
-	-- Grant all privileges on WordPress database to user
-	GRANT ALL PRIVILEGES ON ${MYSQL_DATABASE}.* TO '${MYSQL_USER}'@'%';
-
-	-- Apply changes
+mysql -u root --socket=/run/mysqld/mysqld.sock << EOF
 	FLUSH PRIVILEGES;
-EOF
-	echo "[DEBUG] Database and user created successfully!"
-else
-	echo "[DEBUG] Database already exists. Skipping initialization."
 	
-	# Still set root password
-	mysql -u root << EOF
 	ALTER USER 'root'@'localhost' IDENTIFIED BY '${MYSQL_ROOT_PASSWORD}';
+	
+	CREATE DATABASE IF NOT EXISTS \`${MYSQL_DATABASE}\`;
+	
+	CREATE USER IF NOT EXISTS '${MYSQL_USER}'@'%' IDENTIFIED BY '${MYSQL_PASSWORD}';
+	CREATE USER IF NOT EXISTS '${MYSQL_USER}'@'localhost' IDENTIFIED BY '${MYSQL_PASSWORD}';
+	
+	GRANT ALL PRIVILEGES ON \`${MYSQL_DATABASE}\`.* TO '${MYSQL_USER}'@'%';
+	GRANT ALL PRIVILEGES ON \`${MYSQL_DATABASE}\`.* TO '${MYSQL_USER}'@'localhost';
+	
 	FLUSH PRIVILEGES;
 EOF
-fi
+
+echo "[DEBUG] Setup completed!"
 
 # =========================
 # RESTART MARIADB
 # =========================
-echo "[DEBUG] Shutting down temporary MariaDB instance..."
+echo "[DEBUG] Shutting down MariaDB instance..."
 mysqladmin -u root -p${MYSQL_ROOT_PASSWORD} shutdown 2> /dev/null || true
+sleep 2
 
 wait $MARIADB_PID 2> /dev/null || true
 

@@ -78,15 +78,23 @@ fi
 # SET UP PERMISSIONS
 # =========================
 echo "[DEBUG] Setting up file permissions..."
-chmod -R 755 /var/www/html
+# Set directories to 755 (readable/executable for www-data)
+find /var/www/html -type d -exec chmod 755 {} \;
+# Set files to 644 (readable for www-data)
+find /var/www/html -type f -exec chmod 644 {} \;
 
-# Prepare uploads directory
+# Prepare uploads directory with write permissions for www-data
 mkdir -p /var/www/html/wp-content/uploads
-chmod -R 755 /var/www/html/wp-content
-chmod -R 755 /var/www/html/wp-content/uploads
+chmod -R 775 /var/www/html/wp-content/uploads
+chown -R www-data:www-data /var/www/html/wp-content/uploads
+
+# Set proper ownership for all WordPress files
+chown -R www-data:www-data /var/www/html
+
+echo "[DEBUG] File permissions set successfully"
 
 # =========================
 # START PHP-FPM
 # =========================
 echo "[DEBUG] Starting PHP-FPM..."
-exec /usr/sbin/php8.2-fpm -F
+exec "$@"

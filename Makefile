@@ -20,16 +20,12 @@ setup:
 	@echo "Creating data directories..."
 	@mkdir -p $(DATA_PATH)/mariadb
 	@mkdir -p $(DATA_PATH)/wordpress
-	@echo "Setting directory permissions..."
-	# FIXED: Changed from 777 to 755 (more restrictive, better security)
-	@sudo chmod 755 $(DATA_PATH)/mariadb
-	@sudo chmod 755 $(DATA_PATH)/wordpress
 	@echo "Setup complete"
 
 # =========================
 # BUILD TARGETS
 # =========================
-all: setup
+all: up
 	@echo "Building Inception infrastructure..."
 	$(DOCKER_COMPOSE) up -d --build
 	@echo "Inception started successfully!"
@@ -39,7 +35,7 @@ build:
 	@echo "Building Docker images..."
 	$(DOCKER_COMPOSE) build --no-cache
 
-up:
+up: setup
 	@echo "Starting containers..."
 	$(DOCKER_COMPOSE) up -d --build
 	@echo "Containers started"
@@ -76,10 +72,8 @@ fclean: clean
 	@docker image prune -a -f >/dev/null 2>&1 || true
 	@echo "Removing build cache..."
 	@docker builder prune -a -f >/dev/null 2>&1 || true
-	@echo "Fixing permissions..."
-	@sudo chown -R $(USER):$(USER) $(DATA_PATH) >/dev/null 2>&1 || true
 	@echo "Removing persistent data..."
-	@sudo rm -rf $(DATA_PATH) >/dev/null 2>&1 || true
+	@rm -rf $(DATA_PATH) >/dev/null 2>&1 || true
 	@echo "COMPLETE CLEANUP DONE"
 
 # =========================

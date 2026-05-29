@@ -39,5 +39,5 @@ EXPOSE 3306
 # Run initialization script first
 ENTRYPOINT ["/usr/local/bin/init-mariadb.sh"]
 
-# Start MariaDB server as mysql user and keep it running
-CMD ["mysqld", "--user=mysql"]
+# Start MariaDB server with explicit bind-address to listen on all interfaces
+CMD ["mysqld", "--user=mysql", "--bind-address=0.0.0.0"]
