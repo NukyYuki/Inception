@@ -1,74 +1,81 @@
 #!/bin/bash
-# =========================
-# MARIADB INITIALIZATION SCRIPT
-# =========================
-
 set -e
 
-# =========================
-# INITIALIZE DATABASE
-# =========================
-echo "[DEBUG] Checking if database is initialized..."
+# Check if database is already initialized
 if [ ! -d "/var/lib/mysql/mysql" ]; then
-	echo "[DEBUG] Initializing MariaDB data directory..."
-	mysql_install_db --user=mysql --datadir=/var/lib/mysql --skip-test-db
-	echo "[DEBUG] Database directory initialized"
+    echo "=== Initializing MariaDB data directory ==="
+    mariadb-install-db --user=mysql --datadir=/var/lib/mysql --skip-test-db
 fi
 
-# =========================
-# START MARIADB WITH SKIP-GRANT-TABLES (first time only)
-# =========================
-echo "[DEBUG] Starting MariaDB server with --skip-grant-tables..."
-mysqld --user=mysql --bind-address=0.0.0.0 --skip-grant-tables &
+# Start MariaDB in the background
+echo "=== Starting MariaDB for configuration ==="
+mysqld_safe &
 MARIADB_PID=$!
 
 # Wait for MariaDB to be ready
-echo "[DEBUG] Waiting for MariaDB to become ready..."
-for i in {30..0}; do
-	if mysqladmin ping --silent; then
-		echo "[DEBUG] MariaDB server is up and running!"
-		break
-	fi
-	if [ $i -eq 0 ]; then
-		echo "[ERROR] MariaDB server failed to start."
-		exit 1
-	fi
-	echo "[DEBUG] Waiting for MariaDB... ($i seconds left)"
-	sleep 1
+echo "=== Waiting for MariaDB to be ready ==="
+READY=0
+for i in {1..60}; do
+    if mysqladmin ping --silent >/dev/null 2>&1; then
+        READY=1
+        break
+    fi
+    if mysqladmin -u root -p"${MYSQL_ROOT_PASSWORD}" ping --silent >/dev/null 2>&1; then
+        READY=1
+        break
+    fi
+    echo "  Waiting... ($i/60)"
+    sleep 1
 done
+if [ "$READY" -ne 1 ]; then
+    echo "✗ ERROR: MariaDB failed to start"
+    exit 1
+fi
+echo "✓ MariaDB is ready!"
 
-# =========================
-# SETUP USERS AND PERMISSIONS
-# =========================
-echo "[DEBUG] Setting up users and database..."
-echo "[DEBUG] DB: ${MYSQL_DATABASE}, User: ${MYSQL_USER}"
+ROOT_CMD=(mysql -u root)
+if mysql -u root -p"${MYSQL_ROOT_PASSWORD}" -e "SELECT 1" >/dev/null 2>&1; then
+    ROOT_CMD=(mysql -u root -p"${MYSQL_ROOT_PASSWORD}")
+fi
 
-mysql -u root --socket=/run/mysqld/mysqld.sock << EOF
-	FLUSH PRIVILEGES;
-	
-	ALTER USER 'root'@'localhost' IDENTIFIED BY '${MYSQL_ROOT_PASSWORD}';
-	
-	CREATE DATABASE IF NOT EXISTS \`${MYSQL_DATABASE}\`;
-	
-	CREATE USER IF NOT EXISTS '${MYSQL_USER}'@'%' IDENTIFIED BY '${MYSQL_PASSWORD}';
-	CREATE USER IF NOT EXISTS '${MYSQL_USER}'@'localhost' IDENTIFIED BY '${MYSQL_PASSWORD}';
-	
-	GRANT ALL PRIVILEGES ON \`${MYSQL_DATABASE}\`.* TO '${MYSQL_USER}'@'%';
-	GRANT ALL PRIVILEGES ON \`${MYSQL_DATABASE}\`.* TO '${MYSQL_USER}'@'localhost';
-	
-	FLUSH PRIVILEGES;
+# Initialize root password and create database
+if [ ! -d "/var/lib/mysql/${MYSQL_DATABASE}" ]; then
+    echo "=== Creating database and users ==="
+
+    "${ROOT_CMD[@]}" << EOF
+-- Set root password
+ALTER USER 'root'@'localhost' IDENTIFIED BY '${MYSQL_ROOT_PASSWORD}';
+
+-- Create application database
+CREATE DATABASE IF NOT EXISTS \`${MYSQL_DATABASE}\`;
+
+-- Create application user
+CREATE USER IF NOT EXISTS \`${MYSQL_USER}\`@'%' IDENTIFIED BY '${MYSQL_PASSWORD}';
+
+-- Grant privileges
+GRANT ALL PRIVILEGES ON \`${MYSQL_DATABASE}\`.* TO \`${MYSQL_USER}\`@'%';
+
+-- Apply changes
+FLUSH PRIVILEGES;
 EOF
 
-echo "[DEBUG] Setup completed!"
+    echo "✓ Database configuration complete"
+else
+    echo "✓ Database already exists, verifying root password..."
 
-# =========================
-# RESTART MARIADB
-# =========================
-echo "[DEBUG] Shutting down MariaDB instance..."
-mysqladmin -u root -p${MYSQL_ROOT_PASSWORD} shutdown 2> /dev/null || true
-sleep 2
+    # Set/update root password
+    "${ROOT_CMD[@]}" << EOF
+ALTER USER 'root'@'localhost' IDENTIFIED BY '${MYSQL_ROOT_PASSWORD}';
+FLUSH PRIVILEGES;
+EOF
+fi
 
-wait $MARIADB_PID 2> /dev/null || true
+# Shutdown MariaDB gracefully
+echo "=== Stopping MariaDB for restart ==="
+mysqladmin -u root -p${MYSQL_ROOT_PASSWORD} shutdown 2>/dev/null || true
 
-echo "[DEBUG] Starting MariaDB server (foreground mode)..."
+# Wait for process to finish
+wait $MARIADB_PID 2>/dev/null || true
+
+echo "=== Starting MariaDB as main service ==="
 exec "$@"

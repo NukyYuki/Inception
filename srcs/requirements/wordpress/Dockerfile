@@ -3,52 +3,43 @@ FROM debian:bookworm
 # =========================
 # DEPENDENCIES
 # =========================
-# Install PHP-FPM and required modules for WordPress
 RUN apt-get update && apt-get install -y \
-	php8.2-fpm \
-	php8.2-mysql \
-	curl \
-	mariadb-client
+    php8.2-fpm \
+    php8.2-mysql \
+    curl \
+    mariadb-client
 
 # =========================
-# WORDPRESS CLI (WP-CLI)
+# WP-CLI
 # =========================
-# Download and install WP-CLI for WordPress automation
 RUN curl -O https://raw.githubusercontent.com/wp-cli/builds/gh-pages/phar/wp-cli.phar \
-	&& chmod +x wp-cli.phar \
-	&& mv wp-cli.phar /usr/local/bin/wp
+    && chmod +x wp-cli.phar \
+    && mv wp-cli.phar /usr/local/bin/wp
 
 # =========================
-# PHP-FPM CONFIGURATION
+# PHP-FPM CONFIG
 # =========================
-# Copy custom PHP-FPM pool configuration
-# Maps to listening port configured in wpress.conf
-COPY conf/wpress.conf /etc/php/8.2/fpm/pool.d/wpress.conf
+COPY conf/wpress.conf /etc/php/8.2/fpm/pool.d/www.conf
 
 # =========================
-# REQUIRED DIRECTORIES
+# REQUIRED DIRS
 # =========================
-# Create PHP-FPM runtime directory
 RUN mkdir -p /run/php
 
 # =========================
 # WORKDIR
 # =========================
-# WordPress installation and files will be stored here
 WORKDIR /var/www/html
 
 # =========================
-# INITIALIZATION SCRIPT
+# SCRIPT (your original one)
 # =========================
-# Copy and set executable permissions on the WordPress initialization script
-COPY tools/wpress-init.sh /usr/local/bin/wpress-init.sh
-RUN chmod +x /usr/local/bin/wpress-init.sh
+COPY tools/wpress-init.sh /usr/local/bin/wordpress-init.sh
+RUN chmod +x /usr/local/bin/wordpress-init.sh
 
 # =========================
 # STARTUP
 # =========================
-# Run initialization script first, then start PHP-FPM
-ENTRYPOINT [ "/usr/local/bin/wpress-init.sh" ]
+ENTRYPOINT ["/usr/local/bin/wordpress-init.sh"]
 
-# Run PHP-FPM in foreground (-F) to keep container alive
 CMD ["/usr/sbin/php-fpm8.2", "-F"]

@@ -1,13 +1,7 @@
-# =========================
-# INCEPTION - Docker Compose Configuration
-# =========================
-# This file orchestrates the NGINX, WordPress, and MariaDB containers
-# For 42 School environment: DOMAIN_NAME should be your 42 login (mipinhei.42.fr)
-
 services:
 
   # =========================
-  # MARIADB - Database Service
+  # MARIADB
   # =========================
   mariadb:
     build:
@@ -19,56 +13,19 @@ services:
       - "${MYSQL_PORT}"
     env_file:
       - .env
-    environment:
-      - MYSQL_DATABASE=${MYSQL_DATABASE}
-      - MYSQL_USER=${MYSQL_USER}
-      - MYSQL_PASSWORD=${MYSQL_PASSWORD}
-      - MYSQL_ROOT_PASSWORD=${MYSQL_ROOT_PASSWORD}
-      - MYSQL_PORT=${MYSQL_PORT}
     volumes:
       - mariadb_volume:/var/lib/mysql
     restart: always
 
   # =========================
-  # WORDPRESS - PHP-FPM Service
+  # NGINX
   # =========================
-  wordpress:
-    build:
-      context: ./requirements/wordpress
-    container_name: wordpress
-    depends_on:
-      - mariadb
-    networks:
-      - inception
-    env_file:
-      - .env
-    environment:
-      - MYSQL_DATABASE=${MYSQL_DATABASE}
-      - MYSQL_USER=${MYSQL_USER}
-      - MYSQL_PASSWORD=${MYSQL_PASSWORD}
-      - MYSQL_PORT=${MYSQL_PORT}
-      - DOMAIN_NAME=${DOMAIN_NAME}
-      - SITE_TITLE=${SITE_TITLE}
-      - WP_ADMIN_USER=${WP_ADMIN_USER}
-      - WP_ADMIN_PASSWORD=${WP_ADMIN_PASSWORD}
-      - WP_ADMIN_EMAIL=${WP_ADMIN_EMAIL}
-      - WP_USER=${WP_USER}
-      - WP_USER_EMAIL=${WP_USER_EMAIL}
-      - WP_USER_PASSWORD=${WP_USER_PASSWORD}
-    volumes:
-      - wordpress_volume:/var/www/html
-    restart: always
-
-  # =========================
-  # NGINX - Web Server (TLS)
-  # =========================
-  # Only NGINX exposes ports to the host
   nginx:
     build:
       context: ./requirements/nginx
     container_name: nginx
     depends_on:
-      - wordpress
+      - mariadb
     ports:
       - "443:443"
     networks:
@@ -79,10 +36,26 @@ services:
       - wordpress_volume:/var/www/html
     restart: always
 
+  # =========================
+  # WORDPRESS
+  # =========================
+  wordpress:
+    build:
+      context: ./requirements/wordpress
+    container_name: wordpress
+    depends_on:
+    - mariadb
+    networks:
+    - inception
+    env_file:
+    - .env
+    volumes:
+    - wordpress_volume:/var/www/html
+    restart: always
+
 # =========================
 # NETWORK
 # =========================
-# Bridge network for inter-container communication
 networks:
   inception:
     driver: bridge
@@ -90,19 +63,17 @@ networks:
 # =========================
 # VOLUMES
 # =========================
-# Named volumes with bind mounts for persistence
-# Uses ${SUDO_USER} variable from .env which maps to your login
 volumes:
   mariadb_volume:
     driver: local
     driver_opts:
       type: none
-      device: /home/${SUDO_USER}/data/mariadb
       o: bind
+      device: /home/mipinhei/data/mariadb
 
   wordpress_volume:
     driver: local
     driver_opts:
       type: none
-      device: /home/${SUDO_USER}/data/wordpress
       o: bind
+      device: /home/mipinhei/data/wordpress

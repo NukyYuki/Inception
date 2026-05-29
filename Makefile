@@ -74,6 +74,7 @@ fclean: clean
 	@docker builder prune -a -f >/dev/null 2>&1 || true
 	@echo "Removing persistent data..."
 	@rm -rf $(DATA_PATH) >/dev/null 2>&1 || true
+	@rm -rf ${HOME}/data
 	@echo "COMPLETE CLEANUP DONE"
 
 # =========================

@@ -1,43 +1,19 @@
 FROM debian:bookworm
 
-# =========================
-# DEPENDENCIES
-# =========================
-# Install MariaDB server with minimal extra packages
-RUN apt update && \
-	apt install -y --no-install-recommends --no-install-suggests \
-	mariadb-server && \
-	rm -rf /var/lib/apt/lists/*
+RUN apt-get update && apt-get install -y mariadb-server
 
-# =========================
-# MYSQL RUNTIME SETUP
-# =========================
-# Create /var/run/mysqld directory and set correct permissions
-# This is required for MariaDB to run properly
+#create folder for the database process to run
 RUN mkdir -p /var/run/mysqld && chown -R mysql:mysql /var/run/mysqld
 
-# =========================
-# CONFIGURATION
-# =========================
-# Copy MariaDB configuration file
-COPY conf/default.conf /etc/mysql/mariadb.conf.d/
+#this line transports the conf to the container
+COPY conf/default.conf /etc/mysql/mariadb.conf.d/50-server.cnf
+COPY tools/init-mariadb.sh /usr/local/bin/mariadb-init.sh 
 
-# Copy initialization script
-COPY tools/init-mariadb.sh /usr/local/bin/init-mariadb.sh
-RUN chmod +x /usr/local/bin/init-mariadb.sh
+RUN chmod +x /usr/local/bin/mariadb-init.sh 
 
-# =========================
-# EXPOSE PORT
-# =========================
-# MariaDB listens on port 3306 (internal network only)
-# Not exposed to host - only accessible from WordPress container
 EXPOSE 3306
 
-# =========================
-# STARTUP
-# =========================
-# Run initialization script first
-ENTRYPOINT ["/usr/local/bin/init-mariadb.sh"]
+ENTRYPOINT ["/usr/local/bin/mariadb-init.sh"]
 
-# Start MariaDB server with explicit bind-address to listen on all interfaces
-CMD ["mysqld", "--user=mysql", "--bind-address=0.0.0.0"]
+#command that keeps container alive
+CMD ["mysqld", "--user=mysql"]
