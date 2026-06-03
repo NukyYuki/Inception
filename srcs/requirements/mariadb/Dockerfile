@@ -34,6 +34,12 @@ RUN chmod +x /usr/local/bin/init-mariadb.sh
 EXPOSE 3306
 
 # =========================
+# USER
+# =========================
+# Run MariaDB as mysql user (non-root) for security
+USER mysql
+
+# =========================
 # STARTUP
 # =========================
 # Run initialization script first

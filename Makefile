@@ -29,6 +29,7 @@ all: up
 	@echo "Building Inception infrastructure..."
 	$(DOCKER_COMPOSE) up -d --build
 	@echo "Inception started successfully!"
+	curl -k -I https://127.0.0.1 -H 'Host: mipinhei.42.fr' --max-time 10
 	@echo "Access: https://$(DOMAIN_NAME)"
 
 build:
@@ -73,7 +74,7 @@ fclean: clean
 	@echo "Removing build cache..."
 	@docker builder prune -a -f >/dev/null 2>&1 || true
 	@echo "Removing persistent data..."
-	@rm -rf $(DATA_PATH) >/dev/null 2>&1 || true
+	@sudo rm -rf $(DATA_PATH) >/dev/null 2>&1 || true
 	@echo "COMPLETE CLEANUP DONE"
 
 # =========================

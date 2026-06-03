@@ -45,6 +45,12 @@ COPY tools/wpress-init.sh /usr/local/bin/wpress-init.sh
 RUN chmod +x /usr/local/bin/wpress-init.sh
 
 # =========================
+# USER
+# =========================
+# Run initialization as root, then drop privileges in the startup script
+USER root
+
+# =========================
 # STARTUP
 # =========================
 # Run initialization script first, then start PHP-FPM

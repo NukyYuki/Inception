@@ -14,8 +14,7 @@ set -e
 # =========================
 # CONFIGURE PHP-FPM
 # =========================
-echo "[DEBUG] Configuring PHP-FPM to listen on port 9000..."
-sed -i 's|listen = /run/php/php8.2-fpm.sock|listen = 9000|' /etc/php/8.2/fpm/pool.d/wpress.conf
+# The pool config already listens on TCP port 9000.
 
 # =========================
 # WAIT FOR MARIADB
