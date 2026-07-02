@@ -1,6 +1,6 @@
 .DEFAULT_GOAL := all
 
-.PHONY: all setup build up stop down clean fclean re logs ps
+.PHONY: all setup build up stop down clean fclean re logs ps precheck
 
 # =========================
 # VARIABLES
@@ -45,6 +45,34 @@ all: up
 build:
 	@echo "Building Docker images..."
 	$(DOCKER_COMPOSE) build --no-cache
+
+# =========================
+# PREFLIGHT TARGETS
+# =========================
+precheck:
+	@echo "Running Inception preflight checks..."
+	@command -v docker >/dev/null 2>&1 || { echo "[ERROR] docker is not installed or not in PATH"; exit 1; }
+	@docker compose version >/dev/null 2>&1 || { echo "[ERROR] docker compose is not available"; exit 1; }
+	@test -f $(COMPOSE_FILE) || { echo "[ERROR] Missing $(COMPOSE_FILE)"; exit 1; }
+	@if [ -f ./srcs/.env ]; then \
+		set -a; . ./srcs/.env; set +a; \
+		check_var() { \
+			eval "value=\$$1"; \
+			if [ -z "$$value" ]; then \
+				echo "[ERROR] $$1 is empty in ./srcs/.env"; \
+				exit 1; \
+			fi; \
+		}; \
+		for var in DOMAIN_NAME MYSQL_DATABASE MYSQL_USER MYSQL_PASSWORD MYSQL_ROOT_PASSWORD MYSQL_PORT WP_ADMIN_USER WP_ADMIN_PASSWORD WP_ADMIN_EMAIL WP_USER WP_USER_EMAIL WP_USER_PASSWORD SITE_TITLE; do \
+			check_var $$var; \
+		done; \
+	else \
+		echo "[WARN] ./srcs/.env is missing; skipping env value validation"; \
+	fi; \
+	DOMAIN_CHECK="$${DOMAIN_NAME:-mipinhei.42.fr}"; \
+	getent hosts "$$DOMAIN_CHECK" >/dev/null 2>&1 || { echo "[ERROR] $$DOMAIN_CHECK does not resolve on this host"; exit 1; }; \
+	getent hosts "$$DOMAIN_CHECK" | grep -Eq '(^127\.0\.0\.1[[:space:]]|^[[:space:]]*127\.0\.0\.1[[:space:]]).*' || { echo "[ERROR] $$DOMAIN_CHECK does not resolve to 127.0.0.1"; exit 1; }; \
+	echo "[OK] Preflight checks passed"
 
 up: setup
 	@echo "Starting containers..."

@@ -20,13 +20,21 @@ set -e
 # WAIT FOR MARIADB
 # =========================
 echo "[DEBUG] Waiting for MariaDB to be ready..."
+MAX_RETRIES=30
+RETRY_DELAY=2
+attempt=1
 until mariadb -h mariadb \
 	--port="$MYSQL_PORT" \
 	-u"$MYSQL_USER" \
 	-p"$MYSQL_PASSWORD" \
 	-e "SELECT 1" &> /dev/null; do
-	echo "[DEBUG] MariaDB not ready yet, waiting..."
-	sleep 2
+	if [ "$attempt" -ge "$MAX_RETRIES" ]; then
+		echo "[ERROR] MariaDB did not become ready after $MAX_RETRIES attempts"
+		exit 1
+	fi
+	echo "[DEBUG] MariaDB not ready yet, waiting... ($attempt/$MAX_RETRIES)"
+	attempt=$((attempt + 1))
+	sleep "$RETRY_DELAY"
 done
 echo "[DEBUG] MariaDB is ready!"
 
