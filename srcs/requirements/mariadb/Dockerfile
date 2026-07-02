@@ -6,7 +6,8 @@ FROM debian:bookworm
 # Install MariaDB server with minimal extra packages
 RUN apt update && \
 	apt install -y --no-install-recommends --no-install-suggests \
-	mariadb-server && \
+	mariadb-server \
+	dos2unix && \
 	rm -rf /var/lib/apt/lists/*
 
 # =========================
@@ -24,7 +25,7 @@ COPY conf/default.conf /etc/mysql/mariadb.conf.d/
 
 # Copy initialization script
 COPY tools/init-mariadb.sh /usr/local/bin/init-mariadb.sh
-RUN chmod +x /usr/local/bin/init-mariadb.sh
+RUN dos2unix /usr/local/bin/init-mariadb.sh && chmod +x /usr/local/bin/init-mariadb.sh
 
 # =========================
 # EXPOSE PORT
@@ -37,13 +38,14 @@ EXPOSE 3306
 # USER
 # =========================
 # Run MariaDB as mysql user (non-root) for security
-USER mysql
+# (but entrypoint runs as root first to initialize, then switches to mysql)
+USER root
 
 # =========================
 # STARTUP
 # =========================
-# Run initialization script first
-ENTRYPOINT ["/usr/local/bin/init-mariadb.sh"]
+# Run initialization script first, using bash -c to bypass shared folder permission issues
+ENTRYPOINT ["bash", "-c", "/usr/local/bin/init-mariadb.sh && exec \"$@\"", "--"]
 
 # Start MariaDB server with explicit bind-address to listen on all interfaces
 CMD ["mysqld", "--user=mysql", "--bind-address=0.0.0.0"]

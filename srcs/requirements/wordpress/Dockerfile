@@ -8,7 +8,8 @@ RUN apt-get update && apt-get install -y \
 	php8.2-fpm \
 	php8.2-mysql \
 	curl \
-	mariadb-client
+	mariadb-client \
+	dos2unix
 
 # =========================
 # WORDPRESS CLI (WP-CLI)
@@ -42,7 +43,7 @@ WORKDIR /var/www/html
 # =========================
 # Copy and set executable permissions on the WordPress initialization script
 COPY tools/wpress-init.sh /usr/local/bin/wpress-init.sh
-RUN chmod +x /usr/local/bin/wpress-init.sh
+RUN dos2unix /usr/local/bin/wpress-init.sh && chmod +x /usr/local/bin/wpress-init.sh
 
 # =========================
 # USER
@@ -53,8 +54,8 @@ USER root
 # =========================
 # STARTUP
 # =========================
-# Run initialization script first, then start PHP-FPM
-ENTRYPOINT [ "/usr/local/bin/wpress-init.sh" ]
+# Run initialization script first using bash -c to bypass shared folder permission issues
+ENTRYPOINT ["bash", "-c", "/usr/local/bin/wpress-init.sh && exec \"$@\"", "--"]
 
 # Run PHP-FPM in foreground (-F) to keep container alive
 CMD ["/usr/sbin/php-fpm8.2", "-F"]
