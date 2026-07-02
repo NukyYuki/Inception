@@ -104,5 +104,10 @@ You can also check the HTTPS endpoint with a browser or with:
 ```bash
 curl -k -I https://<DOMAIN_NAME>
 ```
+Verify change of where WordPress port is listening
+``` 
+docker compose -f srcs/docker-compose.yml --env-file ./srcs/.env exec wordpress sh -c "grep -R \"listen\\s*=\\s*\" /etc 2>/dev/null || true"
+
+```
 
 If the project was started successfully, the NGINX container should be running, WordPress should be reachable through HTTPS, and the WordPress admin page should load with the credentials from `srcs/.env`.
