@@ -71,4 +71,4 @@ sleep 2
 wait $MARIADB_PID 2> /dev/null || true
 
 echo "[DEBUG] Starting MariaDB server (foreground mode)..."
-exec "$@"
+exec mysqld --user=mysql --bind-address=0.0.0.0

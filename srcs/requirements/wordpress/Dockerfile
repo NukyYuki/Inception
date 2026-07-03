@@ -54,8 +54,8 @@ USER root
 # =========================
 # STARTUP
 # =========================
-# Run initialization script first using bash -c to bypass shared folder permission issues
-ENTRYPOINT ["bash", "-c", "/usr/local/bin/wpress-init.sh && exec \"$@\"", "--"]
+# Run initialization script first, then start PHP-FPM
+ENTRYPOINT ["/usr/local/bin/wpress-init.sh"]
 
 # Run PHP-FPM in foreground (-F) to keep container alive
 CMD ["/usr/sbin/php-fpm8.2", "-F"]

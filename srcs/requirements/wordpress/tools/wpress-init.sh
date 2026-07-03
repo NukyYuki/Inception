@@ -98,6 +98,9 @@ chown -R www-data:www-data /var/www/html/wp-content/uploads
 # Set proper ownership for all WordPress files
 chown -R www-data:www-data /var/www/html
 
+echo "[DEBUG] WordPress initialization complete, starting PHP-FPM..."
+exec /usr/sbin/php-fpm8.2 -F
+
 echo "[DEBUG] File permissions set successfully"
 
 # =========================

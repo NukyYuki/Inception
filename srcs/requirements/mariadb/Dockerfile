@@ -44,8 +44,8 @@ USER root
 # =========================
 # STARTUP
 # =========================
-# Run initialization script first, using bash -c to bypass shared folder permission issues
-ENTRYPOINT ["bash", "-c", "/usr/local/bin/init-mariadb.sh && exec \"$@\"", "--"]
+# Run initialization script first, then start MariaDB
+ENTRYPOINT ["/usr/local/bin/init-mariadb.sh"]
 
 # Start MariaDB server with explicit bind-address to listen on all interfaces
 CMD ["mysqld", "--user=mysql", "--bind-address=0.0.0.0"]
