@@ -128,3 +128,9 @@ Useful references for this project:
 - WordPress documentation: https://wordpress.org/documentation/
 - MariaDB documentation: https://mariadb.com/kb/en/documentation/
 - WP-CLI documentation: https://developer.wordpress.org/cli/commands/
+
+## AI Usage
+
+AI was mostly used to troubleshoot and read logs when some service was crashing and not building.
+There were also times when prompts were made to take some conclusions into the underlying structure of the project and how some details are written, given that it is the first time working with docker.
+The use of AI was also relevant to organize information and write the .md into a sucint way that was easy to read and well documented.
