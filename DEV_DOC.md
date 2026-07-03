@@ -110,3 +110,65 @@ The startup flow is:
 4. NGINX proxies PHP requests to the WordPress container over the internal Docker network.
 
 This structure keeps the services separated, reproducible, and easy to rebuild from scratch.
+
+## Directory Structure
+
+The directory structure required for Inception is not arbitrary; it represents industry-standard DevOps blueprints tailored specifically to fulfill strict system administration.
+
+1. The Isolation Principle: Separation of Concerns (SoC)
+
+In the required structure, every service gets its own distinct subdirectory inside srcs/requirements/:
+
+```
+srcs/requirements/
+├── mariadb/
+├── nginx/
+└── wordpress/
+```
+
+Why it matters: This enforces strict separation of concerns. If a developer needs to update the TLS certificate configurations, they touch only the nginx folder. If they need to change a database setting, they focus only on mariadb. It prevents configuration bleed where one mistake crashes an unrelated service.
+
+2. Immutability of Images vs. Variability of Configurations
+
+Inside each component folder (like mariadb/), the architecture splits into a conf/ directory and a tools/ directory:
+
+```
+requirements/mariadb/
+├── Dockerfile
+├── conf/
+│   └── default.conf
+└── tools/
+    └── init-mariadb.sh
+```
+
+This separates static configurations from dynamic runtime execution.
+
+The conf/ files dictate how the program behaves as a system daemon (e.g., binding to 0.0.0.0 or listening on port 3306).
+
+The tools/ files house runtime operational scripts (like bootstrapping database users securely). This structure makes building, debugging, and maintaining the container highly modular.
+
+3. Protecting Secrets and Contextual Boundaries
+
+The docker-compose.yml and the .env file are placed side-by-side at the root of the application stack inside the srcs/ directory.
+
+Why it matters: Docker Compose reads environment variables from a .env file located in the same directory where the command is executed. Keeping srcs/docker-compose.yml and srcs/.env in the exact same directory ensures that Compose can inherently inject those credentials (MYSQL_PASSWORD, WP_ADMIN_PASSWORD) directly into the containers at runtime, without needing to hardcode them in your Git history.
+
+4. Global Orchestration Layer vs. Local Implementation
+
+The Makefile sits completely outside of the srcs/ directory at the root of the repository:
+
+```
+Inception/
+├── Makefile
+└── srcs/
+```
+
+This establishes a strict hierarchy of control. The root directory serves as the Control Panel for the evaluator. The evaluator doesn't need to navigate through deep directory levels or understand the micro-configurations of your NGINX server. They stay at the root, run make, and the Makefile acts as the overarching manager that reaches down into srcs/ to spin up the infrastructure.
+
+5. Why Host Folders (like /home/login/data) Must Exist Independently
+
+The project requires that data persist in a dedicated directory on the host machine. By defining volume configurations in docker-compose.yml that target these paths, you separate the infrastructure lifecycle from the data lifecycle.
+
+If a container crashes, burns, or is cleanly removed by a docker compose down, your data is completely unaffected because it resides safely up in the host layer.
+
+In short, this layout forces you to practice Clean Architecture in systems engineering—ensuring your code is reproducible, modular, securely isolated, and easily maintainable by an operations team.
